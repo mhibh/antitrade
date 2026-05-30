@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { LoginForm } from "@/components/LoginForm";
 
 export default function LoginPage() {
@@ -13,12 +12,6 @@ export default function LoginPage() {
           </p>
         </div>
         <LoginForm mode="login" />
-        <p className="mt-6 text-center text-sm text-slate-500 dark:text-slate-400">
-          Belum punya akun?{" "}
-          <Link className="font-medium text-violet-700 dark:text-violet-300" href="/register">
-            Register
-          </Link>
-        </p>
       </div>
     </main>
   );
