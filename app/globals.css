@@ -1,0 +1,169 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+  --chart-grid: rgba(148, 163, 184, 0.24);
+  --chart-tooltip-bg: #ffffff;
+  --chart-tooltip-border: rgba(148, 163, 184, 0.28);
+  --chart-tooltip-text: #0f172a;
+}
+
+:root.dark {
+  color-scheme: dark;
+  --chart-grid: rgba(255, 255, 255, 0.08);
+  --chart-tooltip-bg: #171a29;
+  --chart-tooltip-border: rgba(255, 255, 255, 0.1);
+  --chart-tooltip-text: #ffffff;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at 16% 8%, rgba(124, 58, 237, 0.1), transparent 30%),
+    radial-gradient(circle at 92% 22%, rgba(236, 72, 153, 0.09), transparent 26%),
+    #f8fafc;
+  color: #0f172a;
+  font-family:
+    Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+:root.dark body {
+  background:
+    radial-gradient(circle at 16% 8%, rgba(128, 64, 255, 0.16), transparent 30%),
+    radial-gradient(circle at 92% 22%, rgba(236, 72, 153, 0.18), transparent 26%),
+    #0d0f1b;
+  color: #f8fafc;
+}
+
+html,
+body {
+  width: 100%;
+  overflow-x: hidden;
+}
+
+button,
+input,
+textarea {
+  font: inherit;
+}
+
+button {
+  -webkit-tap-highlight-color: transparent;
+}
+
+::selection {
+  background: rgba(168, 85, 247, 0.45);
+}
+
+.panel {
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.96), rgba(241, 245, 249, 0.94));
+  box-shadow: 0 24px 80px rgba(15, 23, 42, 0.1);
+}
+
+:root.dark .panel {
+  border-color: rgba(255, 255, 255, 0.08);
+  background: linear-gradient(145deg, rgba(39, 42, 62, 0.92), rgba(24, 26, 40, 0.96));
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.35);
+}
+
+.soft-surface {
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  background: rgba(248, 250, 252, 0.92);
+}
+
+:root.dark .soft-surface {
+  border-color: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.interactive-surface {
+  background: rgba(241, 245, 249, 0.78);
+}
+
+.interactive-surface:hover,
+.interactive-surface:focus-within {
+  background: rgba(226, 232, 240, 0.9);
+}
+
+:root.dark .interactive-surface {
+  background: rgba(255, 255, 255, 0.035);
+}
+
+:root.dark .interactive-surface:hover,
+:root.dark .interactive-surface:focus-within {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.icon-chip {
+  background: rgba(124, 58, 237, 0.14);
+  color: #6d28d9;
+}
+
+:root.dark .icon-chip {
+  background: rgba(139, 92, 246, 0.2);
+  color: #ddd6fe;
+}
+
+.status-win {
+  background: rgba(16, 185, 129, 0.13);
+  color: #047857;
+}
+
+.status-loss {
+  background: rgba(244, 63, 94, 0.13);
+  color: #be123c;
+}
+
+.status-withdrawal {
+  background: rgba(245, 158, 11, 0.17);
+  color: #92400e;
+}
+
+.status-neutral {
+  background: rgba(100, 116, 139, 0.15);
+  color: #475569;
+}
+
+:root.dark .status-win {
+  background: rgba(52, 211, 153, 0.15);
+  color: #a7f3d0;
+}
+
+:root.dark .status-loss {
+  background: rgba(251, 113, 133, 0.15);
+  color: #fecdd3;
+}
+
+:root.dark .status-withdrawal {
+  background: rgba(252, 211, 77, 0.15);
+  color: #fde68a;
+}
+
+:root.dark .status-neutral {
+  background: rgba(148, 163, 184, 0.15);
+  color: #e2e8f0;
+}
+
+.purple-panel {
+  background:
+    radial-gradient(circle at 80% 8%, rgba(255, 255, 255, 0.28), transparent 23%),
+    linear-gradient(140deg, #7c3aed, #c026d3 58%, #f0abfc);
+}
+
+.thin-scrollbar::-webkit-scrollbar {
+  height: 7px;
+  width: 7px;
+}
+
+.thin-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(168, 85, 247, 0.45);
+  border-radius: 999px;
+}
