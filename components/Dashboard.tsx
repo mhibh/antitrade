@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { TouchEvent } from "react";
 import { useRouter } from "next/navigation";
 import { Calculator } from "@/components/Calculator";
 import { EquityCurve } from "@/components/EquityCurve";
@@ -35,6 +36,7 @@ function withDefaultTradeType(trades: Trade[]) {
 
 export function Dashboard() {
   const router = useRouter();
+  const swipeStartX = useRef<number | null>(null);
   const [userId, setUserId] = useState("");
   const [settingsId, setSettingsId] = useState<string | null>(null);
   const [modalAwal, setModalAwal] = useState(0);
@@ -48,6 +50,7 @@ export function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [savingModal, setSavingModal] = useState(false);
   const [error, setError] = useState("");
+  const [summarySlide, setSummarySlide] = useState(0);
 
   const supabase = useMemo(() => createClient(), []);
   const stats = useMemo(() => calculateStats(modalAwal, trades), [modalAwal, trades]);
@@ -209,6 +212,26 @@ export function Dashboard() {
     setEditingTrade(null);
   }
 
+  function handleSummaryTouchStart(event: TouchEvent<HTMLDivElement>) {
+    swipeStartX.current = event.changedTouches[0]?.clientX ?? null;
+  }
+
+  function handleSummaryTouchEnd(event: TouchEvent<HTMLDivElement>) {
+    if (swipeStartX.current === null) return;
+
+    const endX = event.changedTouches[0]?.clientX ?? swipeStartX.current;
+    const distance = endX - swipeStartX.current;
+    const swipeThreshold = 40;
+
+    if (distance <= -swipeThreshold) {
+      setSummarySlide(1);
+    } else if (distance >= swipeThreshold) {
+      setSummarySlide(0);
+    }
+
+    swipeStartX.current = null;
+  }
+
   async function handleSaveTradeAndClose(values: TradeFormValues) {
     const saved = await handleSaveTrade(values);
     if (saved) {
@@ -271,16 +294,47 @@ export function Dashboard() {
         {error ? <p className="mt-4 rounded-2xl bg-rose-500/10 p-3 text-sm leading-5 text-rose-700 dark:text-rose-100">{error}</p> : null}
 
         <div className="mt-4 grid gap-4 sm:mt-5 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.5fr)]">
-          <div className="xl:col-start-1 xl:row-start-1">
-            <ModalAwalForm
-              currency={currency}
-              modalAwal={modalAwal}
-              rate={rate}
-              saldoSekarang={stats.saldoSekarang}
-              totalProfit={stats.totalProfit}
-              totalReturn={stats.totalReturn}
-              totalWithdrawal={stats.totalWithdrawal}
-            />
+          <div className="min-w-0 xl:contents">
+            <div
+              className="w-full min-w-0 overflow-x-hidden xl:contents"
+              onTouchEnd={handleSummaryTouchEnd}
+              onTouchStart={handleSummaryTouchStart}
+            >
+              <div
+                className="flex w-full min-w-0 transition-transform duration-300 ease-out xl:contents xl:!transform-none"
+                style={{ transform: `translateX(-${summarySlide * 100}%)` }}
+              >
+                <div className="min-w-0 shrink-0 basis-full xl:col-start-1 xl:row-start-1 xl:shrink xl:basis-auto">
+                  <ModalAwalForm
+                    currency={currency}
+                    modalAwal={modalAwal}
+                    rate={rate}
+                    saldoSekarang={stats.saldoSekarang}
+                    totalProfit={stats.totalProfit}
+                    totalReturn={stats.totalReturn}
+                    totalWithdrawal={stats.totalWithdrawal}
+                  />
+                </div>
+
+                <div className="min-w-0 shrink-0 basis-full xl:col-start-2 xl:row-start-1 xl:shrink xl:basis-auto">
+                  <EquityCurve currency={currency} modalAwal={modalAwal} rate={rate} trades={trades} />
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-center gap-2 xl:hidden">
+              {[0, 1].map((slide) => (
+                <button
+                  aria-label={`Tampilkan ${slide === 0 ? "balance card" : "equity curve card"}`}
+                  className={`h-2 rounded-full transition-all ${
+                    summarySlide === slide ? "w-6 bg-violet-600" : "w-2 bg-slate-300 dark:bg-slate-600"
+                  }`}
+                  key={slide}
+                  onClick={() => setSummarySlide(slide)}
+                  type="button"
+                />
+              ))}
+            </div>
           </div>
 
           <div className="xl:col-start-1 xl:row-start-2">
@@ -291,10 +345,6 @@ export function Dashboard() {
               savingModal={savingModal}
               stats={stats}
             />
-          </div>
-
-          <div className="xl:col-start-2 xl:row-start-1">
-            <EquityCurve currency={currency} modalAwal={modalAwal} rate={rate} trades={trades} />
           </div>
 
           <div className="xl:col-start-2 xl:row-start-2">
