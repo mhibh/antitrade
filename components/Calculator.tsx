@@ -1,17 +1,18 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Calculator as CalculatorIcon } from "lucide-react";
+import { Calculator as CalculatorIcon, X } from "lucide-react";
 import { formatMoney } from "@/lib/utils";
 import type { Currency } from "@/types";
 
 type CalculatorProps = {
   currency: Currency;
   lastBalance: number;
+  onClose?: () => void;
   rate: number;
 };
 
-export function Calculator({ currency, lastBalance, rate }: CalculatorProps) {
+export function Calculator({ currency, lastBalance, onClose, rate }: CalculatorProps) {
   const [capital, setCapital] = useState(lastBalance);
   const [target, setTarget] = useState(2);
   const [maxLoss, setMaxLoss] = useState(1);
@@ -27,12 +28,24 @@ export function Calculator({ currency, lastBalance, rate }: CalculatorProps) {
   );
 
   return (
-    <section className="panel min-w-0 rounded-[24px] p-4 sm:rounded-[26px] sm:p-5">
-      <div className="mb-5 flex items-center gap-2">
-        <span className="icon-chip grid h-9 w-9 shrink-0 place-items-center rounded-full">
-          <CalculatorIcon className="h-4 w-4" />
-        </span>
-        <h2 className="text-base font-semibold sm:text-lg">Kalkulator Harian</h2>
+    <section className="min-w-0">
+      <div className="mb-5 flex items-center justify-between gap-3">
+        <div className="flex min-w-0 items-center gap-2">
+          <span className="icon-chip grid h-9 w-9 shrink-0 place-items-center rounded-full">
+            <CalculatorIcon className="h-4 w-4" />
+          </span>
+          <h2 className="truncate text-base font-semibold sm:text-lg">Kalkulator Harian</h2>
+        </div>
+        {onClose ? (
+          <button
+            aria-label="Tutup modal"
+            className="grid h-10 w-10 shrink-0 place-items-center rounded-full border border-slate-200 bg-slate-100 text-slate-700 transition hover:bg-slate-200 dark:border-white/10 dark:bg-white/[0.04] dark:text-slate-200 dark:hover:bg-white/10"
+            onClick={onClose}
+            type="button"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        ) : null}
       </div>
 
       <label className="soft-surface mb-3 block rounded-2xl p-4">

@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { X } from "lucide-react";
 import { Calculator } from "@/components/Calculator";
 import { EquityCurve } from "@/components/EquityCurve";
 import { ModalAwalForm } from "@/components/ModalAwalForm";
@@ -12,7 +11,7 @@ import { TradeForm } from "@/components/TradeForm";
 import { TradeTable } from "@/components/TradeTable";
 import { fetchUsdIdrRate } from "@/lib/currency";
 import { createClient } from "@/lib/supabase";
-import { calculateStats, saldoAkhir, todayIso } from "@/lib/utils";
+import { calculateStats, todayIso } from "@/lib/utils";
 import type { Currency, Trade, TradeFormValues } from "@/types";
 
 const TRADE_SELECT = "id, user_id, tanggal, saldo_awal, pnl, type, catatan, created_at, updated_at";
@@ -45,16 +44,13 @@ export function Dashboard() {
   const [updatedAt, setUpdatedAt] = useState<Date>(new Date());
   const [editingTrade, setEditingTrade] = useState<Trade | null>(null);
   const [tradeModalOpen, setTradeModalOpen] = useState(false);
+  const [calculatorModalOpen, setCalculatorModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [savingModal, setSavingModal] = useState(false);
   const [error, setError] = useState("");
 
   const supabase = useMemo(() => createClient(), []);
   const stats = useMemo(() => calculateStats(modalAwal, trades), [modalAwal, trades]);
-  const lastBalance = useMemo(() => {
-    const sortedTrades = [...trades].sort((a, b) => a.tanggal.localeCompare(b.tanggal));
-    return sortedTrades.length ? saldoAkhir(sortedTrades[sortedTrades.length - 1]) : modalAwal;
-  }, [modalAwal, trades]);
 
   const loadDashboard = useCallback(async () => {
     if (!supabase) {
@@ -265,6 +261,7 @@ export function Dashboard() {
         <Navbar
           currency={currency}
           onLogout={handleLogout}
+          onOpenCalculator={() => setCalculatorModalOpen(true)}
           onOpenTradeModal={handleOpenNewTrade}
           onToggleCurrency={toggleCurrency}
           rate={rate}
@@ -318,27 +315,13 @@ export function Dashboard() {
           onClick={handleCloseTradeModal}
         >
           <div
-            className="panel thin-scrollbar max-h-[94dvh] w-full max-w-5xl overflow-y-auto rounded-[24px] p-3 shadow-2xl sm:max-h-[90vh] sm:rounded-[28px] sm:p-5"
+            className="panel w-full max-w-xl overflow-hidden rounded-[24px] shadow-2xl sm:rounded-[28px]"
             onClick={(event) => event.stopPropagation()}
           >
-            <div className="mb-4 flex items-center justify-between gap-3 px-1">
-              <div>
-                <h2 className="text-lg font-semibold">Trade Harian</h2>
-              </div>
-              <button
-                aria-label="Tutup modal"
-                className="grid h-10 w-10 shrink-0 place-items-center rounded-full border border-slate-200 bg-slate-100 text-slate-700 transition hover:bg-slate-200 dark:border-white/10 dark:bg-white/[0.04] dark:text-slate-200 dark:hover:bg-white/10"
-                onClick={handleCloseTradeModal}
-                type="button"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-            <div className="grid gap-4 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
-              <Calculator currency={currency} lastBalance={lastBalance} rate={rate} />
+            <div className="thin-scrollbar max-h-[94dvh] overflow-y-auto p-4 pr-3 sm:max-h-[90vh] sm:p-7 sm:pr-5">
               <TradeForm
                 currency={currency}
-                defaultSaldo={lastBalance}
+                defaultSaldo={stats.saldoSekarang}
                 editingTrade={editingTrade}
                 onCancelEdit={handleCloseTradeModal}
                 onSave={handleSaveTradeAndClose}
@@ -346,6 +329,25 @@ export function Dashboard() {
                 today={todayIso()}
               />
             </div>
+          </div>
+        </div>
+      ) : null}
+
+      {calculatorModalOpen ? (
+        <div
+          className="fixed inset-0 z-50 grid place-items-end bg-slate-950/55 px-2 py-2 backdrop-blur-sm sm:place-items-center sm:px-4 sm:py-6 dark:bg-slate-950/75"
+          onClick={() => setCalculatorModalOpen(false)}
+        >
+          <div
+            className="panel thin-scrollbar max-h-[94dvh] w-full max-w-xl overflow-y-auto rounded-[24px] p-3 shadow-2xl sm:max-h-[90vh] sm:rounded-[28px] sm:p-5"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <Calculator
+              currency={currency}
+              lastBalance={stats.saldoSekarang}
+              onClose={() => setCalculatorModalOpen(false)}
+              rate={rate}
+            />
           </div>
         </div>
       ) : null}

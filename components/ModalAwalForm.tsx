@@ -30,7 +30,7 @@ export function ModalAwalForm({
           <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white/25 text-white">
             <WalletCards className="h-4 w-4" />
           </span>
-          <p className="truncate font-semibold">RekapTrading</p>
+          <p className="truncate font-semibold">AntiTrade</p>
         </div>
         <span className="shrink-0 rounded-full bg-emerald-400 px-3 py-1 text-xs font-semibold text-emerald-950">
           {formatPercent(totalReturn)}

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { LogOut, Moon, Plus, Sun } from "lucide-react";
+import { Calculator, LogOut, Moon, Plus, Sun } from "lucide-react";
 import { useTheme } from "next-themes";
 import type { Currency } from "@/types";
 
@@ -9,12 +9,21 @@ type NavbarProps = {
   currency: Currency;
   rate: number;
   updatedAt: Date;
+  onOpenCalculator: () => void;
   onOpenTradeModal: () => void;
   onToggleCurrency: () => void;
   onLogout: () => void;
 };
 
-export function Navbar({ currency, onLogout, onOpenTradeModal, onToggleCurrency, rate, updatedAt }: NavbarProps) {
+export function Navbar({
+  currency,
+  onLogout,
+  onOpenCalculator,
+  onOpenTradeModal,
+  onToggleCurrency,
+  rate,
+  updatedAt
+}: NavbarProps) {
   const { resolvedTheme, setTheme, theme } = useTheme();
   const [mounted, setMounted] = useState(false);
   const currentTheme = resolvedTheme ?? theme ?? "dark";
@@ -33,7 +42,7 @@ export function Navbar({ currency, onLogout, onOpenTradeModal, onToggleCurrency,
       <div className="min-w-0 flex-1">
         <div className="flex min-w-0 items-center gap-3">
           <div className="min-w-0">
-            <h1 className="truncate text-lg font-semibold sm:text-xl">RekapTrading</h1>
+            <h1 className="truncate text-lg font-semibold sm:text-xl">AntiTrade</h1>
             <p className="mt-0.5 text-xs leading-5 text-slate-400 sm:mt-1">
               1 USD = Rp {Math.round(rate).toLocaleString("id-ID")} · {updatedAt.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })}
             </p>
@@ -41,7 +50,7 @@ export function Navbar({ currency, onLogout, onOpenTradeModal, onToggleCurrency,
         </div>
       </div>
 
-      <div className="grid grid-cols-[auto_auto_minmax(0,1fr)_auto] items-center gap-2 sm:flex sm:flex-wrap sm:justify-end">
+      <div className="grid grid-cols-[auto_auto_minmax(0,1fr)_minmax(0,1fr)_auto] items-center gap-2 sm:flex sm:flex-wrap sm:justify-end">
         <button
           className="h-10 rounded-full bg-violet-600 px-4 text-sm font-semibold text-white shadow-glow transition hover:bg-violet-500 dark:bg-violet-600 dark:hover:bg-violet-500"
           onClick={onToggleCurrency}
@@ -64,7 +73,15 @@ export function Navbar({ currency, onLogout, onOpenTradeModal, onToggleCurrency,
           type="button"
         >
           <Plus className="h-4 w-4 shrink-0" />
-          <span className="truncate">Tambah Trade</span>
+          <span className="truncate">Tambah Catatan</span>
+        </button>
+        <button
+          className="flex h-10 min-w-0 items-center justify-center gap-2 rounded-full border border-slate-200 bg-slate-100 px-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-200 sm:px-4 dark:border-white/10 dark:bg-white/[0.04] dark:text-slate-200 dark:hover:bg-white/10"
+          onClick={onOpenCalculator}
+          type="button"
+        >
+          <Calculator className="h-4 w-4 shrink-0" />
+          <span className="truncate">Kalkulator</span>
         </button>
         <button
           aria-label="Logout"

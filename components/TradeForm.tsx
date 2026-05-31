@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Plus, Save, X } from "lucide-react";
+import { Save, X } from "lucide-react";
 import { formatMoney } from "@/lib/utils";
 import type { Currency, Trade, TradeFormValues, TradeType } from "@/types";
 
@@ -113,7 +113,7 @@ export function TradeForm({
   }
 
   return (
-    <section className="panel min-w-0 rounded-[24px] p-4 sm:rounded-[26px] sm:p-5">
+    <section className="min-w-0">
       <div className="mb-5 flex items-center justify-between">
         <h2 className="font-semibold">
           {editingTrade
@@ -122,17 +122,16 @@ export function TradeForm({
               : "Edit Trade"
             : isWithdrawal
               ? "Tambah Withdrawal"
-              : "Tambah Trade"}
+              : "Tambah Catatan"}
         </h2>
-        {editingTrade ? (
-          <button className="grid h-9 w-9 place-items-center rounded-full bg-slate-100 text-slate-700 transition hover:bg-slate-200 dark:bg-white/10 dark:text-slate-200 dark:hover:bg-white/15" onClick={onCancelEdit} type="button">
-            <X className="h-4 w-4" />
-          </button>
-        ) : (
-          <span className="icon-chip grid h-9 w-9 place-items-center rounded-full">
-            <Plus className="h-4 w-4" />
-          </span>
-        )}
+        <button
+          aria-label="Tutup modal"
+          className="grid h-10 w-10 shrink-0 place-items-center rounded-full border border-slate-200 bg-slate-100 text-slate-700 transition hover:bg-slate-200 dark:border-white/10 dark:bg-white/[0.04] dark:text-slate-200 dark:hover:bg-white/10"
+          onClick={onCancelEdit}
+          type="button"
+        >
+          <X className="h-4 w-4" />
+        </button>
       </div>
 
       <form className="space-y-3" onSubmit={handleSubmit}>

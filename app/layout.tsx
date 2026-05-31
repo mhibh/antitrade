@@ -3,7 +3,7 @@ import { ThemeProvider } from "next-themes";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "RekapTrading",
+  title: "AntiTrade",
   description: "Jurnal trading pribadi dengan dashboard performa."
 };
 
