@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import type { KeyboardEvent, ReactNode } from "react";
 import { CalendarDays, Edit3, FileText, Trash2, X } from "lucide-react";
 import {
   countTradeDays,
@@ -11,7 +12,20 @@ import {
 } from "@/lib/utils";
 import type { Currency, Trade } from "@/types";
 
-const PAGE_SIZE = 7;
+const PAGE_SIZE = 5;
+const RESULT_FILTERS = [
+  { label: "Semua", value: "all" },
+  { label: "Win", value: "win" },
+  { label: "Loss", value: "loss" },
+  { label: "Withdraw", value: "withdrawal" },
+] as const;
+
+type ResultFilter = (typeof RESULT_FILTERS)[number]["value"];
+
+type MonthFilter = {
+  label: string;
+  value: string;
+};
 
 function statusClass(isWithdrawal: boolean, isWin: boolean, isLoss: boolean) {
   if (isWithdrawal) return "status-withdrawal";
@@ -24,6 +38,32 @@ function valueToneClass(tone: "neutral" | "win" | "loss") {
   if (tone === "win") return "text-emerald-600 dark:text-emerald-300";
   if (tone === "loss") return "text-rose-600 dark:text-rose-300";
   return "text-slate-600 dark:text-slate-300";
+}
+
+function monthKey(date: string) {
+  return date.slice(0, 7);
+}
+
+function monthLabel(key: string) {
+  const [year, month] = key.split("-");
+  const date = new Date(Number(year), Number(month) - 1, 1);
+
+  return new Intl.DateTimeFormat("id-ID", {
+    month: "short",
+    year: "numeric",
+  }).format(date);
+}
+
+function matchesResultFilter(trade: Trade, filter: ResultFilter) {
+  if (filter === "all") return true;
+
+  const isWithdrawal = (trade.type ?? "trade") === "withdrawal";
+
+  if (filter === "withdrawal") return isWithdrawal;
+  if (isWithdrawal) return false;
+  if (filter === "win") return trade.pnl > 0;
+
+  return trade.pnl < 0;
 }
 
 type TradeTableProps = {
@@ -42,9 +82,10 @@ export function TradeTable({
   trades,
 }: TradeTableProps) {
   const [page, setPage] = useState(0);
+  const [resultFilter, setResultFilter] = useState<ResultFilter>("all");
+  const [monthFilter, setMonthFilter] = useState("all");
   const [selectedTrade, setSelectedTrade] = useState<Trade | null>(null);
-  const totalDays = countTradeDays(trades);
-  const sortedTrades = [...trades].sort((a, b) => {
+  const sortedTrades = useMemo(() => [...trades].sort((a, b) => {
     const dateCompare = b.tanggal.localeCompare(a.tanggal);
 
     if (dateCompare !== 0) return dateCompare;
@@ -53,10 +94,34 @@ export function TradeTable({
     const bCreated = b.created_at ?? b.updated_at ?? b.id;
 
     return bCreated.localeCompare(aCreated);
-  });
-  const totalPages = Math.ceil(sortedTrades.length / PAGE_SIZE);
+  }), [trades]);
+  const monthOptions = useMemo<MonthFilter[]>(() => {
+    const months = new Map<string, string>();
+
+    sortedTrades.forEach((trade) => {
+      const key = monthKey(trade.tanggal);
+
+      if (!months.has(key)) months.set(key, monthLabel(key));
+    });
+
+    return [
+      { label: "Semua Bulan", value: "all" },
+      ...Array.from(months, ([value, label]) => ({ label, value })),
+    ];
+  }, [sortedTrades]);
+  const filteredTrades = useMemo(
+    () =>
+      sortedTrades.filter(
+        (trade) =>
+          matchesResultFilter(trade, resultFilter) &&
+          (monthFilter === "all" || monthKey(trade.tanggal) === monthFilter),
+      ),
+    [monthFilter, resultFilter, sortedTrades],
+  );
+  const totalDays = countTradeDays(filteredTrades);
+  const totalPages = Math.ceil(filteredTrades.length / PAGE_SIZE);
   const currentPage = Math.min(page, Math.max(totalPages - 1, 0));
-  const visibleTrades = sortedTrades.slice(
+  const visibleTrades = filteredTrades.slice(
     currentPage * PAGE_SIZE,
     (currentPage + 1) * PAGE_SIZE,
   );
@@ -71,10 +136,10 @@ export function TradeTable({
 
   useEffect(() => {
     setPage(0);
-  }, [trades.length]);
+  }, [monthFilter, resultFilter, trades.length]);
 
   function handleTradeKeyDown(
-    event: React.KeyboardEvent<HTMLElement>,
+    event: KeyboardEvent<HTMLElement>,
     trade: Trade,
   ) {
     if (event.key !== "Enter" && event.key !== " ") return;
@@ -105,31 +170,65 @@ export function TradeTable({
         </span>
       </div>
 
+      {sortedTrades.length > 0 ? (
+        <div className="mb-4 space-y-3 px-1">
+          <FilterChipGroup label="Filter Hasil">
+            {RESULT_FILTERS.map((filter) => (
+              <FilterChip
+                active={resultFilter === filter.value}
+                key={filter.value}
+                onClick={() => setResultFilter(filter.value)}
+              >
+                {filter.label}
+              </FilterChip>
+            ))}
+          </FilterChipGroup>
+          <FilterChipGroup label="Filter Bulan">
+            {monthOptions.map((month) => (
+              <FilterChip
+                active={monthFilter === month.value}
+                key={month.value}
+                onClick={() => setMonthFilter(month.value)}
+              >
+                {month.label}
+              </FilterChip>
+            ))}
+          </FilterChipGroup>
+        </div>
+      ) : null}
+
       {sortedTrades.length === 0 ? (
         <div className="soft-surface rounded-[20px] border-dashed p-5 text-center text-sm leading-6 text-slate-500 dark:text-slate-400">
           Belum ada catatan trading.
         </div>
       ) : null}
 
-      <div className="space-y-3 md:hidden">
-        {visibleTrades.map((trade) => {
-          const percent = trade.saldo_awal
-            ? (trade.pnl / trade.saldo_awal) * 100
-            : 0;
-          const isWithdrawal = (trade.type ?? "trade") === "withdrawal";
-          const isWin = !isWithdrawal && trade.pnl > 0;
-          const isLoss = !isWithdrawal && trade.pnl < 0;
+      {sortedTrades.length > 0 && filteredTrades.length === 0 ? (
+        <div className="soft-surface rounded-[20px] border-dashed p-5 text-center text-sm leading-6 text-slate-500 dark:text-slate-400">
+          Tidak ada catatan yang cocok dengan filter aktif.
+        </div>
+      ) : null}
 
-          return (
-            <article
-              aria-label={`Lihat detail trade ${trade.tanggal}`}
-              className="interactive-surface cursor-pointer rounded-[20px] p-3 transition focus:outline-none focus:ring-2 focus:ring-violet-400/70"
-              key={trade.id}
-              onClick={() => setSelectedTrade(trade)}
-              onKeyDown={(event) => handleTradeKeyDown(event, trade)}
-              role="button"
-              tabIndex={0}
-            >
+      {filteredTrades.length > 0 ? (
+        <div className="space-y-3 md:hidden">
+          {visibleTrades.map((trade) => {
+            const percent = trade.saldo_awal
+              ? (trade.pnl / trade.saldo_awal) * 100
+              : 0;
+            const isWithdrawal = (trade.type ?? "trade") === "withdrawal";
+            const isWin = !isWithdrawal && trade.pnl > 0;
+            const isLoss = !isWithdrawal && trade.pnl < 0;
+
+            return (
+              <article
+                aria-label={`Lihat detail trade ${trade.tanggal}`}
+                className="interactive-surface cursor-pointer rounded-[20px] p-3 transition focus:outline-none focus:ring-2 focus:ring-violet-400/70"
+                key={trade.id}
+                onClick={() => setSelectedTrade(trade)}
+                onKeyDown={(event) => handleTradeKeyDown(event, trade)}
+                role="button"
+                tabIndex={0}
+              >
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <p className="font-semibold">{trade.tanggal}</p>
@@ -175,13 +274,15 @@ export function TradeTable({
                 </div>
               </div>
 
-            </article>
-          );
-        })}
-      </div>
+              </article>
+            );
+          })}
+        </div>
+      ) : null}
 
-      <div className="thin-scrollbar hidden overflow-x-auto md:block">
-        <table className="w-full min-w-[700px] border-separate border-spacing-y-2 text-left text-sm">
+      {filteredTrades.length > 0 ? (
+        <div className="thin-scrollbar hidden overflow-x-auto md:block">
+          <table className="w-full min-w-[700px] border-separate border-spacing-y-2 text-left text-sm">
           <thead className="text-xs text-slate-500 dark:text-slate-400">
             <tr>
               <th className="px-3 py-2 font-medium">Tanggal</th>
@@ -255,8 +356,9 @@ export function TradeTable({
               );
             })}
           </tbody>
-        </table>
-      </div>
+          </table>
+        </div>
+      ) : null}
 
       {totalPages > 1 ? (
         <div className="mt-4 flex flex-wrap items-center justify-between gap-3 px-1 text-xs text-slate-500 dark:text-slate-400">
@@ -437,5 +539,46 @@ function DetailItem({
         {value}
       </p>
     </div>
+  );
+}
+
+function FilterChipGroup({
+  children,
+  label,
+}: {
+  children: ReactNode;
+  label: string;
+}) {
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      <span className="mr-1 text-xs font-medium text-slate-500 dark:text-slate-400">
+        {label}:
+      </span>
+      {children}
+    </div>
+  );
+}
+
+function FilterChip({
+  active,
+  children,
+  onClick,
+}: {
+  active: boolean;
+  children: ReactNode;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      className={`rounded-full border px-3 py-1 text-xs font-semibold transition ${
+        active
+          ? "border-[#7c3aed] bg-[#7c3aed] text-white"
+          : "border-slate-200 bg-transparent text-slate-500 hover:border-violet-300 hover:text-slate-700 dark:border-white/10 dark:text-slate-400 dark:hover:border-violet-400/50 dark:hover:text-slate-200"
+      }`}
+      onClick={onClick}
+      type="button"
+    >
+      {children}
+    </button>
   );
 }
