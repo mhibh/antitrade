@@ -176,11 +176,7 @@ export function EquityCurve({
                 <circle
                   cx={cx}
                   cy={cy}
-                  fill={
-                    (payload as { pnlKumulatif: number }).pnlKumulatif >= 0
-                      ? "#10b981"
-                      : "#ef4444"
-                  }
+                  fill={(payload as { pnl: number }).pnl < 0 ? "#ef4444" : "#10b981"}
                   r={4}
                   stroke="#0f0f1a"
                   strokeWidth={2}

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Save, X } from "lucide-react";
-import { formatMoney } from "@/lib/utils";
+import { formatMoney, formatMoneyInputValue, parseMoneyInputValue } from "@/lib/utils";
 import type { Currency, Trade, TradeFormValues, TradeType } from "@/types";
 
 type PnlInputMode = "pnl" | "ending-balance";
@@ -33,7 +33,12 @@ export function TradeForm({
   const [pnl, setPnl] = useState("");
   const [saldoAkhirBroker, setSaldoAkhirBroker] = useState("");
   const [withdrawalAmount, setWithdrawalAmount] = useState("");
+  const [saldoInput, setSaldoInput] = useState(formatMoneyInputValue(defaultSaldo, currency, rate));
+  const [pnlInput, setPnlInput] = useState("");
+  const [saldoAkhirBrokerInput, setSaldoAkhirBrokerInput] = useState("");
+  const [withdrawalAmountInput, setWithdrawalAmountInput] = useState("");
   const [catatan, setCatatan] = useState("");
+  const moneyInputStep = currency === "USD" ? "0.01" : "1";
   const endingBalanceValue = saldoAkhirBroker === "" ? saldo : Number(saldoAkhirBroker);
   const withdrawalValue = Math.abs(Number(withdrawalAmount || 0));
   const effectivePnl =
@@ -51,32 +56,52 @@ export function TradeForm({
       const editingType = editingTrade.type ?? "trade";
       setTanggal(editingTrade.tanggal);
       setSaldo(editingTrade.saldo_awal);
+      setSaldoInput(formatMoneyInputValue(editingTrade.saldo_awal, currency, rate));
       setType(editingType);
       setPnlInputMode("pnl");
       setPnl(String(editingTrade.pnl));
+      setPnlInput(formatMoneyInputValue(editingTrade.pnl, currency, rate));
       setSaldoAkhirBroker(String(editingTrade.saldo_awal + editingTrade.pnl));
+      setSaldoAkhirBrokerInput(formatMoneyInputValue(editingTrade.saldo_awal + editingTrade.pnl, currency, rate));
       setWithdrawalAmount(editingType === "withdrawal" ? String(Math.abs(editingTrade.pnl)) : "");
+      setWithdrawalAmountInput(
+        editingType === "withdrawal" ? formatMoneyInputValue(Math.abs(editingTrade.pnl), currency, rate) : ""
+      );
       setCatatan(editingTrade.catatan ?? "");
       return;
     }
 
     setTanggal(today);
     setSaldo(defaultSaldo);
+    setSaldoInput(formatMoneyInputValue(defaultSaldo, currency, rate));
     setType("trade");
     setPnlInputMode("pnl");
     setPnl("");
+    setPnlInput("");
     setSaldoAkhirBroker("");
+    setSaldoAkhirBrokerInput("");
     setWithdrawalAmount("");
+    setWithdrawalAmountInput("");
     setCatatan("");
   }, [defaultSaldo, editingTrade, today]);
+
+  useEffect(() => {
+    setSaldoInput(formatMoneyInputValue(saldo, currency, rate));
+    setPnlInput(formatMoneyInputValue(pnl, currency, rate));
+    setSaldoAkhirBrokerInput(formatMoneyInputValue(saldoAkhirBroker, currency, rate));
+    setWithdrawalAmountInput(formatMoneyInputValue(withdrawalAmount, currency, rate));
+  }, [currency, rate]);
 
   function handleTypeChange(nextType: TradeType) {
     if (nextType === type) return;
 
     if (nextType === "withdrawal") {
-      setWithdrawalAmount(effectivePnl ? String(Math.abs(effectivePnl)) : "");
+      const nextWithdrawalAmount = effectivePnl ? Math.abs(effectivePnl) : "";
+      setWithdrawalAmount(String(nextWithdrawalAmount));
+      setWithdrawalAmountInput(formatMoneyInputValue(nextWithdrawalAmount, currency, rate));
     } else {
       setPnl(String(effectivePnl));
+      setPnlInput(formatMoneyInputValue(effectivePnl, currency, rate));
     }
 
     setType(nextType);
@@ -86,12 +111,25 @@ export function TradeForm({
     if (mode === pnlInputMode) return;
 
     if (mode === "ending-balance") {
-      setSaldoAkhirBroker(String(estimatedEndingBalance));
+      setSaldoAkhirBroker("");
+      setSaldoAkhirBrokerInput("");
     } else {
       setPnl(String(effectivePnl));
+      setPnlInput(formatMoneyInputValue(effectivePnl, currency, rate));
     }
 
     setPnlInputMode(mode);
+  }
+
+  function parseOptionalMoneyInput(value: string) {
+    const amount = Number(value);
+    if (value === "" || !Number.isFinite(amount)) return "";
+
+    return String(parseMoneyInputValue(value, currency, rate));
+  }
+
+  function removeDecimalSeparators(value: string) {
+    return value.replace(/[.,]/g, "");
   }
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -105,8 +143,11 @@ export function TradeForm({
     });
     if (!editingTrade && result !== false) {
       setPnl("");
+      setPnlInput("");
       setSaldoAkhirBroker("");
+      setSaldoAkhirBrokerInput("");
       setWithdrawalAmount("");
+      setWithdrawalAmountInput("");
       setCatatan("");
       setType("trade");
     }
@@ -170,10 +211,14 @@ export function TradeForm({
           <input
             className="soft-surface h-11 w-full min-w-0 rounded-2xl px-4 outline-none transition focus:border-violet-500/70 dark:focus:border-violet-300/60"
             min={0}
-            onChange={(event) => setSaldo(Number(event.target.value))}
+            onChange={(event) => {
+              setSaldoInput(event.target.value);
+              setSaldo(parseMoneyInputValue(event.target.value, currency, rate));
+            }}
             required
+            step={moneyInputStep}
             type="number"
-            value={saldo}
+            value={saldoInput}
           />
         </label>
         {isWithdrawal ? (
@@ -181,12 +226,16 @@ export function TradeForm({
             <span className="mb-2 block text-xs text-slate-500 dark:text-slate-400">Jumlah Penarikan</span>
             <input
               className="soft-surface h-11 w-full min-w-0 rounded-2xl px-4 outline-none transition focus:border-violet-500/70 dark:focus:border-violet-300/60"
-              min={1}
-              onChange={(event) => setWithdrawalAmount(event.target.value)}
+              min={currency === "USD" ? 0.01 : 1}
+              onChange={(event) => {
+                setWithdrawalAmountInput(event.target.value);
+                setWithdrawalAmount(parseOptionalMoneyInput(event.target.value));
+              }}
               placeholder="Contoh: 500000"
               required
+              step={moneyInputStep}
               type="number"
-              value={withdrawalAmount}
+              value={withdrawalAmountInput}
             />
             <span className="mt-2 block text-sm font-medium text-rose-600 dark:text-rose-300">PnL: {formattedPnl}</span>
           </label>
@@ -217,11 +266,15 @@ export function TradeForm({
                 <span className="mb-2 block text-xs text-slate-500 dark:text-slate-400">Profit / Loss</span>
                 <input
                   className="soft-surface h-11 w-full min-w-0 rounded-2xl px-4 outline-none transition focus:border-violet-500/70 dark:focus:border-violet-300/60"
-                  onChange={(event) => setPnl(event.target.value)}
+                  onChange={(event) => {
+                    setPnlInput(event.target.value);
+                    setPnl(parseOptionalMoneyInput(event.target.value));
+                  }}
                   placeholder="-50000 atau 150000"
                   required
+                  step={moneyInputStep}
                   type="number"
-                  value={pnl}
+                  value={pnlInput}
                 />
               </label>
             ) : (
@@ -230,11 +283,17 @@ export function TradeForm({
                 <input
                   className="soft-surface h-11 w-full min-w-0 rounded-2xl px-4 outline-none transition focus:border-violet-500/70 dark:focus:border-violet-300/60"
                   min={0}
-                  onChange={(event) => setSaldoAkhirBroker(event.target.value)}
+                  onChange={(event) => {
+                    const nextValue = removeDecimalSeparators(event.target.value);
+                    setSaldoAkhirBrokerInput(nextValue);
+                    setSaldoAkhirBroker(parseOptionalMoneyInput(nextValue));
+                  }}
                   placeholder="Saldo akhir setelah trade"
                   required
-                  type="number"
-                  value={saldoAkhirBroker}
+                  step={moneyInputStep}
+                  type="text"
+                  inputMode="numeric"
+                  value={saldoAkhirBrokerInput}
                 />
                 <span className="mt-2 block text-sm font-medium text-slate-600 dark:text-slate-300">P&amp;L: {formattedPnl}</span>
               </label>

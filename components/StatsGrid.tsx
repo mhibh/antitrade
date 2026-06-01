@@ -9,7 +9,7 @@ import {
   TrendingDown,
   TrendingUp,
 } from "lucide-react";
-import { formatMoney, formatPercent } from "@/lib/utils";
+import { formatMoney, formatMoneyInputValue, formatPercent, parseMoneyInputValue } from "@/lib/utils";
 import type { Currency } from "@/types";
 
 type StatsGridProps = {
@@ -35,8 +35,12 @@ type StatsGridProps = {
 
 export function StatsGrid({ currency, onSaveModal, rate, savingModal, stats }: StatsGridProps) {
   const [modalValue, setModalValue] = useState(stats.modalAwal);
+  const [modalInput, setModalInput] = useState(formatMoneyInputValue(stats.modalAwal, currency, rate));
 
-  useEffect(() => setModalValue(stats.modalAwal), [stats.modalAwal]);
+  useEffect(() => {
+    setModalValue(stats.modalAwal);
+    setModalInput(formatMoneyInputValue(stats.modalAwal, currency, rate));
+  }, [currency, rate, stats.modalAwal]);
 
   const cards = [
     {
@@ -101,9 +105,13 @@ export function StatsGrid({ currency, onSaveModal, rate, savingModal, stats }: S
         <input
           className="soft-surface w-full min-w-0 rounded-xl px-2.5 py-2 text-sm font-semibold outline-none transition focus:border-violet-500/70 dark:focus:border-violet-300/60"
           min={0}
-          onChange={(event) => setModalValue(Number(event.target.value))}
+          onChange={(event) => {
+            setModalInput(event.target.value);
+            setModalValue(parseMoneyInputValue(event.target.value, currency, rate));
+          }}
+          step={currency === "USD" ? "0.01" : "1"}
           type="number"
-          value={modalValue}
+          value={modalInput}
         />
         <button
           className="mt-2 inline-flex min-h-9 w-full items-center justify-center gap-2 rounded-full bg-violet-500 px-3 py-2 text-[11px] font-semibold text-white transition hover:bg-violet-400 disabled:cursor-not-allowed disabled:opacity-70"

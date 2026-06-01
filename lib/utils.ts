@@ -12,6 +12,34 @@ export function formatMoney(value: number, currency: Currency, rate = idrPerUsdF
   }).format(amount);
 }
 
+export function toCurrencyAmount(value: number, currency: Currency, rate = idrPerUsdFallback) {
+  return currency === "USD" ? value / rate : value;
+}
+
+export function fromCurrencyAmount(value: number, currency: Currency, rate = idrPerUsdFallback) {
+  return Math.round(currency === "USD" ? value * rate : value);
+}
+
+export function formatMoneyInputValue(
+  value: number | string,
+  currency: Currency,
+  rate = idrPerUsdFallback
+) {
+  if (value === "") return "";
+
+  const amount = toCurrencyAmount(Number(value), currency, rate);
+  if (!Number.isFinite(amount)) return "";
+
+  return currency === "USD" ? amount.toFixed(2) : String(Math.round(amount));
+}
+
+export function parseMoneyInputValue(value: string, currency: Currency, rate = idrPerUsdFallback) {
+  const amount = Number(value);
+  if (!Number.isFinite(amount)) return 0;
+
+  return fromCurrencyAmount(amount, currency, rate);
+}
+
 export function formatPercent(value: number) {
   return `${value >= 0 ? "+" : ""}${value.toFixed(2)}%`;
 }

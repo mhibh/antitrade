@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Calculator as CalculatorIcon, X } from "lucide-react";
-import { formatMoney } from "@/lib/utils";
+import { formatMoney, formatMoneyInputValue, parseMoneyInputValue } from "@/lib/utils";
 import type { Currency } from "@/types";
 
 type CalculatorProps = {
@@ -14,18 +14,25 @@ type CalculatorProps = {
 
 export function Calculator({ currency, lastBalance, onClose, rate }: CalculatorProps) {
   const [capital, setCapital] = useState(lastBalance);
-  const [target, setTarget] = useState(2);
+  const [capitalInput, setCapitalInput] = useState(formatMoneyInputValue(lastBalance, currency, rate));
+  const [target, setTarget] = useState("2");
   const [maxLoss, setMaxLoss] = useState(1);
 
-  useEffect(() => setCapital(lastBalance), [lastBalance]);
+  useEffect(() => {
+    setCapital(lastBalance);
+    setCapitalInput(formatMoneyInputValue(lastBalance, currency, rate));
+  }, [currency, lastBalance, rate]);
 
-  const result = useMemo(
-    () => ({
-      targetValue: capital * (target / 100),
+  const result = useMemo(() => {
+    const targetPercent = Number(target);
+    const targetValue = Number.isFinite(targetPercent) ? capital * (targetPercent / 100) : 0;
+
+    return {
+      targetValue,
+      targetBalance: capital + targetValue,
       lossValue: capital * (maxLoss / 100)
-    }),
-    [capital, maxLoss, target]
-  );
+    };
+  }, [capital, maxLoss, target]);
 
   return (
     <section className="min-w-0">
@@ -53,9 +60,13 @@ export function Calculator({ currency, lastBalance, onClose, rate }: CalculatorP
         <input
           className="w-full min-w-0 bg-transparent text-xl font-semibold outline-none sm:text-2xl"
           min={0}
-          onChange={(event) => setCapital(Number(event.target.value))}
+          onChange={(event) => {
+            setCapitalInput(event.target.value);
+            setCapital(parseMoneyInputValue(event.target.value, currency, rate));
+          }}
+          step={currency === "USD" ? "0.01" : "1"}
           type="number"
-          value={capital}
+          value={capitalInput}
         />
       </label>
 
@@ -65,7 +76,7 @@ export function Calculator({ currency, lastBalance, onClose, rate }: CalculatorP
           <input
             className="w-full min-w-0 bg-transparent text-lg font-semibold outline-none sm:text-xl"
             min={0}
-            onChange={(event) => setTarget(Number(event.target.value))}
+            onChange={(event) => setTarget(event.target.value)}
             type="number"
             value={target}
           />
@@ -90,6 +101,10 @@ export function Calculator({ currency, lastBalance, onClose, rate }: CalculatorP
         <div className="mt-2 flex items-center justify-between gap-3 text-sm">
           <span className="text-slate-600 dark:text-slate-300">Stop</span>
           <strong className="break-words text-right">{formatMoney(result.lossValue, currency, rate)}</strong>
+        </div>
+        <div className="mt-2 flex items-center justify-between gap-3 text-sm">
+          <span className="text-slate-600 dark:text-slate-300">Saldo + Target</span>
+          <strong className="break-words text-right">{formatMoney(result.targetBalance, currency, rate)}</strong>
         </div>
         <p className="mt-4 text-sm leading-6 text-slate-600 dark:text-slate-300">
           Kejar {formatMoney(result.targetValue, currency, rate)}, stop kalau sudah minus{" "}
