@@ -111,8 +111,14 @@ export function TradeForm({
     if (mode === pnlInputMode) return;
 
     if (mode === "ending-balance") {
-      setSaldoAkhirBroker("");
-      setSaldoAkhirBrokerInput("");
+      if (editingTrade) {
+        const endingBalance = saldo + effectivePnl;
+        setSaldoAkhirBroker(String(endingBalance));
+        setSaldoAkhirBrokerInput(formatMoneyInputValue(endingBalance, currency, rate));
+      } else {
+        setSaldoAkhirBroker("");
+        setSaldoAkhirBrokerInput("");
+      }
     } else {
       setPnl(String(effectivePnl));
       setPnlInput(formatMoneyInputValue(effectivePnl, currency, rate));
