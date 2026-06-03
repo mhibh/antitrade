@@ -304,11 +304,13 @@ export function Dashboard() {
                 className="flex w-full min-w-0 transition-transform duration-300 ease-out xl:contents xl:!transform-none"
                 style={{ transform: `translateX(-${summarySlide * 100}%)` }}
               >
-                <div className="min-w-0 shrink-0 basis-full xl:col-start-1 xl:row-start-1 xl:shrink xl:basis-auto">
+                <div className="min-w-0 shrink-0 basis-full xl:col-start-1 xl:row-start-1 xl:h-full xl:shrink xl:basis-auto">
                   <ModalAwalForm
                     currency={currency}
                     modalAwal={modalAwal}
                     rate={rate}
+                    latestDayPnL={stats.latestDayPnL}
+                    latestDayReturn={stats.latestDayReturn}
                     saldoSekarang={stats.saldoSekarang}
                     totalProfit={stats.totalProfit}
                     totalReturn={stats.totalReturn}
@@ -316,7 +318,7 @@ export function Dashboard() {
                   />
                 </div>
 
-                <div className="min-w-0 shrink-0 basis-full xl:col-start-2 xl:row-start-1 xl:shrink xl:basis-auto">
+                <div className="min-w-0 shrink-0 basis-full xl:col-start-2 xl:row-start-1 xl:h-full xl:shrink xl:basis-auto">
                   <EquityCurve currency={currency} modalAwal={modalAwal} rate={rate} trades={trades} />
                 </div>
               </div>

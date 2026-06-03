@@ -60,6 +60,12 @@ export function calculateStats(modalAwal: number, trades: Trade[]) {
   const sortedTrades = [...trades].sort((a, b) => a.tanggal.localeCompare(b.tanggal));
   const tradingRows = sortedTrades.filter((trade) => (trade.type ?? "trade") === "trade");
   const withdrawalRows = sortedTrades.filter((trade) => (trade.type ?? "trade") === "withdrawal");
+  const latestTradingDate = tradingRows.length ? tradingRows[tradingRows.length - 1].tanggal : null;
+  const latestDayTrades = latestTradingDate
+    ? tradingRows.filter((trade) => trade.tanggal === latestTradingDate)
+    : [];
+  const latestDayPnL = latestDayTrades.reduce((sum, trade) => sum + trade.pnl, 0);
+  const latestDayStartingBalance = latestDayTrades[0]?.saldo_awal ?? 0;
   const totalPnLTrade = tradingRows.reduce((sum, trade) => sum + trade.pnl, 0);
   const totalWithdrawal = withdrawalRows.reduce((sum, trade) => sum + Math.abs(trade.pnl), 0);
   const saldoSekarang = modalAwal + totalPnLTrade - totalWithdrawal;
@@ -73,6 +79,9 @@ export function calculateStats(modalAwal: number, trades: Trade[]) {
     modalAwal,
     saldoSekarang,
     totalReturn: modalAwal ? ((saldoSekarang - modalAwal) / modalAwal) * 100 : 0,
+    latestTradingDate,
+    latestDayPnL,
+    latestDayReturn: latestDayStartingBalance ? (latestDayPnL / latestDayStartingBalance) * 100 : 0,
     winRate: tradingRows.length ? (wins.length / tradingRows.length) * 100 : 0,
     totalProfit,
     totalWithdrawal,
@@ -105,6 +114,7 @@ export function buildEquityData(modalAwal: number, trades: Trade[]) {
       tanggal: new Intl.DateTimeFormat("id-ID", { day: "2-digit", month: "short" }).format(
         new Date(trade.tanggal)
       ),
+      tanggalIso: trade.tanggal,
       pnlKumulatif,
       pnl: trade.pnl,
       modalAwal
@@ -114,6 +124,7 @@ export function buildEquityData(modalAwal: number, trades: Trade[]) {
   return [
     {
       tanggal: "Awal",
+      tanggalIso: null,
       pnlKumulatif: 0,
       pnl: 0,
       modalAwal

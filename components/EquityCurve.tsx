@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import {
   Area,
   AreaChart,
@@ -25,10 +26,22 @@ type EquityCurveProps = {
 
 type EquityPoint = {
   tanggal: string;
+  tanggalIso: string | null;
   pnlKumulatif: number;
   pnlDisplay: number;
   pnl: number;
 };
+
+type PeriodFilter = "1d" | "3d" | "1m" | "7t" | "30t" | "all";
+
+const periodFilters: { label: string; value: PeriodFilter }[] = [
+  { label: "1D", value: "1d" },
+  { label: "3D", value: "3d" },
+  { label: "1M", value: "1m" },
+  { label: "7T", value: "7t" },
+  { label: "30T", value: "30t" },
+  { label: "Semua", value: "all" },
+];
 
 function formatSignedMoney(value: number, currency: Currency, rate: number) {
   const sign = value > 0 ? "+" : value < 0 ? "-" : "";
@@ -38,6 +51,42 @@ function formatSignedMoney(value: number, currency: Currency, rate: number) {
 
 function clamp(value: number, min: number, max: number) {
   return Math.min(Math.max(value, min), max);
+}
+
+function parseLocalDate(date: string) {
+  const [year, month, day] = date.split("-").map(Number);
+
+  return new Date(year, month - 1, day);
+}
+
+function getCalendarThreshold(days: number) {
+  const threshold = new Date();
+  threshold.setHours(0, 0, 0, 0);
+  threshold.setDate(threshold.getDate() - (days - 1));
+
+  return threshold;
+}
+
+function filterEquityData(data: EquityPoint[], period: PeriodFilter) {
+  if (period === "all") return data;
+
+  const tradePoints = data.filter((item) => item.tanggalIso);
+
+  if (period === "7t") return tradePoints.slice(-7);
+  if (period === "30t") return tradePoints.slice(-30);
+
+  const threshold =
+    period === "1d"
+      ? getCalendarThreshold(1)
+      : period === "3d"
+        ? getCalendarThreshold(3)
+        : getCalendarThreshold(30);
+
+  return tradePoints.filter((item) => {
+    if (!item.tanggalIso) return false;
+
+    return parseLocalDate(item.tanggalIso) >= threshold;
+  });
 }
 
 function EquityTooltip({
@@ -84,10 +133,12 @@ export function EquityCurve({
   rate,
   trades,
 }: EquityCurveProps) {
-  const data = buildEquityData(modalAwal, trades).map((item) => ({
+  const [period, setPeriod] = useState<PeriodFilter>("all");
+  const allData = buildEquityData(modalAwal, trades).map((item) => ({
     ...item,
     pnlDisplay: currency === "USD" ? item.pnlKumulatif / rate : item.pnlKumulatif,
   }));
+  const data = filterEquityData(allData, period);
   const pnlValues = data.map((item) => item.pnlDisplay);
   const minPnl = Math.min(0, ...pnlValues);
   const maxPnl = Math.max(0, ...pnlValues);
@@ -97,12 +148,29 @@ export function EquityCurve({
 
   return (
     <section className="panel flex h-full flex-col rounded-[24px] p-3 sm:rounded-[26px] sm:p-5">
-      <div className="mb-3 flex items-center justify-between sm:mb-4">
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-3 sm:mb-4">
         <div className="flex items-center gap-2">
           <span className="icon-chip grid h-9 w-9 shrink-0 place-items-center rounded-full">
             <BarChart3 className="h-4 w-4" />
           </span>
           <p className="font-semibold">Perjalanan Tradingmu</p>
+        </div>
+        <div className="soft-surface flex max-w-full flex-wrap justify-end gap-1 rounded-[18px] p-1 text-[11px] font-semibold text-slate-600 dark:text-slate-300 sm:rounded-full">
+          {periodFilters.map((filter) => (
+            <button
+              aria-pressed={period === filter.value}
+              className={`min-h-8 min-w-10 rounded-full px-3 transition ${
+                period === filter.value
+                  ? "bg-violet-600 text-white hover:bg-violet-500 dark:bg-white dark:text-slate-950 dark:hover:bg-violet-100"
+                  : "hover:bg-slate-200 dark:hover:bg-white/10"
+              }`}
+              key={filter.value}
+              onClick={() => setPeriod(filter.value)}
+              type="button"
+            >
+              {filter.label}
+            </button>
+          ))}
         </div>
       </div>
       <div className="min-h-[260px] flex-1 overflow-hidden xl:min-h-0">

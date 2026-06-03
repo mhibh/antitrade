@@ -66,6 +66,22 @@ function matchesResultFilter(trade: Trade, filter: ResultFilter) {
   return trade.pnl < 0;
 }
 
+function tradeCreatedKey(trade: Trade) {
+  return trade.created_at ?? trade.updated_at ?? trade.id;
+}
+
+function compareTradesByDate(a: Trade, b: Trade) {
+  const dateCompare = b.tanggal.localeCompare(a.tanggal);
+
+  if (dateCompare !== 0) return dateCompare;
+
+  const createdCompare = tradeCreatedKey(b).localeCompare(tradeCreatedKey(a));
+
+  if (createdCompare !== 0) return createdCompare;
+
+  return b.id.localeCompare(a.id);
+}
+
 type TradeTableProps = {
   currency: Currency;
   rate: number;
@@ -84,17 +100,12 @@ export function TradeTable({
   const [page, setPage] = useState(0);
   const [resultFilter, setResultFilter] = useState<ResultFilter>("all");
   const [monthFilter, setMonthFilter] = useState("all");
+  const [dateFilter, setDateFilter] = useState("");
   const [selectedTrade, setSelectedTrade] = useState<Trade | null>(null);
-  const sortedTrades = useMemo(() => [...trades].sort((a, b) => {
-    const dateCompare = b.tanggal.localeCompare(a.tanggal);
-
-    if (dateCompare !== 0) return dateCompare;
-
-    const aCreated = a.created_at ?? a.updated_at ?? a.id;
-    const bCreated = b.created_at ?? b.updated_at ?? b.id;
-
-    return bCreated.localeCompare(aCreated);
-  }), [trades]);
+  const sortedTrades = useMemo(
+    () => [...trades].sort(compareTradesByDate),
+    [trades],
+  );
   const monthOptions = useMemo<MonthFilter[]>(() => {
     const months = new Map<string, string>();
 
@@ -109,14 +120,21 @@ export function TradeTable({
       ...Array.from(months, ([value, label]) => ({ label, value })),
     ];
   }, [sortedTrades]);
-  const filteredTrades = useMemo(
+  const dateFilteredTrades = useMemo(
     () =>
       sortedTrades.filter(
         (trade) =>
-          matchesResultFilter(trade, resultFilter) &&
-          (monthFilter === "all" || monthKey(trade.tanggal) === monthFilter),
+          (monthFilter === "all" || monthKey(trade.tanggal) === monthFilter) &&
+          (dateFilter === "" || trade.tanggal === dateFilter),
       ),
-    [monthFilter, resultFilter, sortedTrades],
+    [dateFilter, monthFilter, sortedTrades],
+  );
+  const filteredTrades = useMemo(
+    () =>
+      dateFilteredTrades.filter((trade) =>
+        matchesResultFilter(trade, resultFilter),
+      ),
+    [dateFilteredTrades, resultFilter],
   );
   const totalDays = countTradeDays(filteredTrades);
   const totalPages = Math.ceil(filteredTrades.length / PAGE_SIZE);
@@ -136,7 +154,7 @@ export function TradeTable({
 
   useEffect(() => {
     setPage(0);
-  }, [monthFilter, resultFilter, trades.length]);
+  }, [dateFilter, monthFilter, resultFilter, trades.length]);
 
   function handleTradeKeyDown(
     event: KeyboardEvent<HTMLElement>,
@@ -160,42 +178,56 @@ export function TradeTable({
 
   return (
     <section className="panel rounded-[24px] p-3 sm:rounded-[26px] sm:p-4">
-      <div className="mb-4 flex items-center justify-between gap-3 px-1">
-        <div>
+      <div className="mb-4 grid grid-cols-[minmax(0,1fr)_auto] items-start gap-x-4 gap-y-3 px-1">
+        <div className="min-w-0">
           <h2 className="font-semibold">Catatan Trading</h2>
           <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">Catatan trading terbaru</p>
         </div>
-        <span className="status-win shrink-0 rounded-full px-3 py-1 text-xs font-semibold">
+        <span className="status-win justify-self-end rounded-full px-3 py-1 text-xs font-semibold">
           {totalDays} hari
         </span>
-      </div>
-
-      {sortedTrades.length > 0 ? (
-        <div className="mb-4 space-y-3 px-1">
-          <FilterChipGroup label="Filter Hasil">
-            {RESULT_FILTERS.map((filter) => (
-              <FilterChip
-                active={resultFilter === filter.value}
-                key={filter.value}
-                onClick={() => setResultFilter(filter.value)}
-              >
-                {filter.label}
-              </FilterChip>
-            ))}
-          </FilterChipGroup>
-          <FilterChipGroup label="Filter Bulan">
-            {monthOptions.map((month) => (
-              <FilterChip
-                active={monthFilter === month.value}
-                key={month.value}
-                onClick={() => setMonthFilter(month.value)}
-              >
-                {month.label}
-              </FilterChip>
-            ))}
-          </FilterChipGroup>
+        <div className="min-w-0 space-y-3">
+          {sortedTrades.length > 0 ? (
+            <>
+              <FilterChipGroup>
+                {RESULT_FILTERS.map((filter) => (
+                  <FilterChip
+                    active={resultFilter === filter.value}
+                    key={filter.value}
+                    onClick={() => setResultFilter(filter.value)}
+                  >
+                    {filter.label}
+                  </FilterChip>
+                ))}
+              </FilterChipGroup>
+              <FilterChipGroup>
+                {monthOptions.map((month) => (
+                  <FilterChip
+                    active={monthFilter === month.value}
+                    key={month.value}
+                    onClick={() => setMonthFilter(month.value)}
+                  >
+                    {month.label}
+                  </FilterChip>
+                ))}
+              </FilterChipGroup>
+            </>
+          ) : null}
         </div>
-      ) : null}
+        <div className="flex items-center justify-end gap-2">
+          <input
+            className="h-9 rounded-full border border-slate-200 bg-transparent px-3 text-xs font-semibold text-slate-600 outline-none transition focus:border-violet-400 dark:border-white/10 dark:text-slate-300 dark:[color-scheme:dark]"
+            onChange={(event) => setDateFilter(event.target.value)}
+            type="date"
+            value={dateFilter}
+          />
+          {dateFilter ? (
+            <FilterChip active={false} onClick={() => setDateFilter("")}>
+              Reset
+            </FilterChip>
+          ) : null}
+        </div>
+      </div>
 
       {sortedTrades.length === 0 ? (
         <div className="soft-surface rounded-[20px] border-dashed p-5 text-center text-sm leading-6 text-slate-500 dark:text-slate-400">
@@ -544,16 +576,11 @@ function DetailItem({
 
 function FilterChipGroup({
   children,
-  label,
 }: {
   children: ReactNode;
-  label: string;
 }) {
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <span className="mr-1 text-xs font-medium text-slate-500 dark:text-slate-400">
-        {label}:
-      </span>
       {children}
     </div>
   );
